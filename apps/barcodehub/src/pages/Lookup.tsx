@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ChevronRight, PackageSearch } from 'lucide-react';
-import { searchProducts } from '@/lib/api';
+import { Search, ChevronRight, PackageSearch, ExternalLink } from 'lucide-react';
+import { searchProducts, lookupOpenFoodFacts } from '@/lib/api';
 import { Input } from '@project/components/ui/input';
 import { Button } from '@project/components/ui/button';
 import { Skeleton } from '@project/components/ui/skeleton';
@@ -19,6 +19,15 @@ export default function Lookup() {
 
   const { data, isFetching } = useQuery({ queryKey: ['search', q], queryFn: () => searchProducts({ q }), enabled: q.length >= 2 });
   const results = data?.results ?? [];
+  // Not in BarcodeHub: fall back to Open Food Facts for real GTINs (the server skips internal-use numbers).
+  const code = q.trim();
+  const { data: off, isFetching: offLoading } = useQuery({
+    queryKey: ['off', code],
+    queryFn: () => lookupOpenFoodFacts({ barcode: code }),
+    enabled: !!data && results.length === 0 && /^\d{12,13}$/.test(code),
+    staleTime: Infinity,
+  });
+  const offProduct = off?.product;
 
   useEffect(() => {
     const exact = results.find((r: any) => r.barcodeNumber === q.trim().toUpperCase());
@@ -40,7 +49,19 @@ export default function Lookup() {
         </form>
         <div className="mt-8 space-y-3">
           {isFetching && [0, 1].map((i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
-          {!isFetching && q.length >= 2 && results.length === 0 && (
+          {offLoading && <Skeleton className="h-20 rounded-lg" />}
+          {!isFetching && !offLoading && offProduct && (
+            <a href={offProduct.url} target="_blank" rel="noopener noreferrer" className="p-4 border border-border rounded-lg flex items-center gap-4 bg-card hover:border-primary transition-colors">
+              {offProduct.image ? <img src={offProduct.image} alt={offProduct.name} className="w-14 h-14 object-contain rounded bg-white" /> : <div className="w-14 h-14 bg-muted rounded" />}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold truncate">{offProduct.name}{offProduct.quantity && <span className="font-normal text-muted-foreground"> · {offProduct.quantity}</span>}</div>
+                <div className="text-sm text-muted-foreground font-mono truncate">{offProduct.barcode}{offProduct.brand && ` · ${offProduct.brand}`}</div>
+                <div className="text-xs text-muted-foreground mt-1">Not on BarcodeHub. Data from Open Food Facts (ODbL).</div>
+              </div>
+              <ExternalLink className="w-5 h-5 text-muted-foreground" />
+            </a>
+          )}
+          {!isFetching && !offLoading && !offProduct && q.length >= 2 && results.length === 0 && (
             <div className="text-center py-14 text-muted-foreground"><PackageSearch className="w-10 h-10 mx-auto mb-3" />No products found for “{q}”.</div>
           )}
           {!isFetching && results.map((r: any) => (

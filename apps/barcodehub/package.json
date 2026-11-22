@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node tests/run.mjs tests/security-regression.test.ts",
+    "test": "node tests/run.mjs tests/security-regression.test.ts tests/openfoodfacts.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
