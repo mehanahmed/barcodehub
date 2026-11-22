@@ -25,8 +25,15 @@ export function rangeFor(tenant: TenantsRecordType, type: keyof typeof INTERNAL_
   return own.startsWith('0') && own.length > 1 ? { prefix: own.slice(1), bodyLen: 11 } : internal;
 }
 
-/** Returns the next free number for a tenant and type: BH-XXX-000001 for System Code128, otherwise from rangeFor(). */
-export async function nextBarcode(tenant: TenantsRecordType, type: string): Promise<string> {
+/** true when another database already uses the number, false when free, null when it could not be checked. */
+export type TakenCheck = (barcode: string) => Promise<boolean | null>;
+
+/**
+ * Returns the next free number for a tenant and type: BH-XXX-000001 for System Code128, otherwise from rangeFor().
+ * With isTaken (e.g. Open Food Facts), EAN-13 / UPC-A numbers it reports as used are skipped; checked is false
+ * when it could not answer, so the number is free in BarcodeHub but unverified outside it.
+ */
+export async function nextBarcode(tenant: TenantsRecordType, type: string, isTaken?: TakenCheck): Promise<{ barcode: string; checked: boolean }> {
   if (type === 'System Code128') {
     const code = (tenant.slug ?? 'XXX').replace(/[^a-z0-9]/gi, '').slice(0, 3).toUpperCase().padEnd(3, 'X');
     const prefix = `BH-${code}-`;
@@ -36,7 +43,7 @@ export async function nextBarcode(tenant: TenantsRecordType, type: string): Prom
       params: [`${prefix}%`, prefix.length + 1],
     });
     const n = Number(rows[0]?.m ?? 0) + 1;
-    return `${prefix}${String(n).padStart(6, '0')}`;
+    return { barcode: `${prefix}${String(n).padStart(6, '0')}`, checked: true };
   }
 
   if (!(type in INTERNAL_RANGES)) fail('Unknown barcode type.');
@@ -49,8 +56,16 @@ export async function nextBarcode(tenant: TenantsRecordType, type: string): Prom
             WHERE "barcodeNumber" LIKE $1 AND "barcodeNumber" ~ '^[0-9]+$' AND LENGTH("barcodeNumber") = $4`,
     params: [`${prefix}%`, prefix.length + 1, refLen, bodyLen + 1],
   });
-  const next = Number(rows[0]?.m ?? 0) + 1;
+  let next = Number(rows[0]?.m ?? 0) + 1;
+  // Bounded so a long run of used numbers can't turn one click into hundreds of outside requests.
+  for (let tries = 0; tries < 25; tries++, next++) {
+    if (String(next).length > refLen) break;
+    const body = prefix + String(next).padStart(refLen, '0');
+    const barcode = body + gs1CheckDigit(body);
+    const taken = isTaken ? await isTaken(barcode) : false;
+    if (taken === null) return { barcode, checked: false };
+    if (!taken) return { barcode, checked: true };
+  }
   if (String(next).length > refLen) fail(`All ${type} numbers in the ${prefix}… range are used. Type a number yourself, or use a longer-range company prefix.`);
-  const body = prefix + String(next).padStart(refLen, '0');
-  return body + gs1CheckDigit(body);
+  return fail('The next 25 numbers are already used outside BarcodeHub. Type a number yourself.');
 }

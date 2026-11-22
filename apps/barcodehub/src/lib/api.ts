@@ -48,6 +48,7 @@ export const listMyPayments = caller<typeof import('../api/listMyPayments').defa
 export const listMyProducts = caller<typeof import('../api/listMyProducts').default>('listMyProducts');
 export const lookupOpenFoodFacts = caller<typeof import('../api/lookupOpenFoodFacts').default>('lookupOpenFoodFacts');
 export const listPackages = caller<typeof import('../api/listPackages').default>('listPackages');
+export const publishToOpenFoodFacts = caller<typeof import('../api/publishToOpenFoodFacts').default>('publishToOpenFoodFacts');
 export const saveProduct = caller<typeof import('../api/saveProduct').default>('saveProduct');
 export const searchProducts = caller<typeof import('../api/searchProducts').default>('searchProducts');
 export const submitPayment = caller<typeof import('../api/submitPayment').default>('submitPayment');

@@ -888,33 +888,50 @@ describe('Server-rendered SEO for crawlers', () => {
 });
 
 describe('Barcode auto-numbering', () => {
+  const nextNumber = async (t: any, type: string) => (await nextBarcode(t, type)).barcode;
+
   test('EAN-13 / UPC-A come only from GS1 internal-use ranges, with valid check digits, never reusing a number', async () => {
     const tenant = { id: 't-auto', slug: 'auto-brand' } as any;
-    assert.equal(await nextBarcode(tenant, 'System Code128'), 'BH-AUT-000001');
+    assert.equal(await nextNumber(tenant, 'System Code128'), 'BH-AUT-000001');
 
-    const ean = await nextBarcode(tenant, 'EAN-13');
+    const ean = await nextNumber(tenant, 'EAN-13');
     assert.match(ean, /^200\d{10}$/);
     assert.equal(validateBarcode('EAN-13', ean), null);
-    const upc = await nextBarcode(tenant, 'UPC-A');
+    const upc = await nextNumber(tenant, 'UPC-A');
     assert.match(upc, /^4\d{11}$/);
     assert.equal(validateBarcode('UPC-A', upc), null);
 
     // Once a product uses the number, the next suggestion moves on (numbering is shared by all brands).
     await pgDb.products.create({ record: { title: 'Taken', barcodeNumber: ean, barcodeType: 'EAN-13', status: 'Draft' } });
-    const next = await nextBarcode(tenant, 'EAN-13');
+    const next = await nextNumber(tenant, 'EAN-13');
     assert.notEqual(next, ean);
     assert.equal(Number(next.slice(3, 12)), Number(ean.slice(3, 12)) + 1);
   });
 
   test('with a company prefix set, the wand numbers inside it (any length up to 11)', async () => {
-    const short = await nextBarcode({ id: 't-p1', slug: 'p1', gs1CompanyPrefix: '57' } as any, 'EAN-13');
+    const short = await nextNumber({ id: 't-p1', slug: 'p1', gs1CompanyPrefix: '57' } as any, 'EAN-13');
     assert.match(short, /^57\d{11}$/);
     assert.equal(validateBarcode('EAN-13', short), null);
-    const longest = await nextBarcode({ id: 't-p2', slug: 'p2', gs1CompanyPrefix: '89412345678' } as any, 'EAN-13');
+    const longest = await nextNumber({ id: 't-p2', slug: 'p2', gs1CompanyPrefix: '89412345678' } as any, 'EAN-13');
     assert.match(longest, /^89412345678\d{2}$/, '11-digit prefix leaves one item digit plus the check digit');
     // UPC-A needs a prefix starting with 0 (dropped in UPC-A); otherwise it falls back to the internal range.
-    assert.match(await nextBarcode({ id: 't-p3', slug: 'p3', gs1CompanyPrefix: '0123' } as any, 'UPC-A'), /^123\d{9}$/);
-    assert.match(await nextBarcode({ id: 't-p4', slug: 'p4', gs1CompanyPrefix: '8941' } as any, 'UPC-A'), /^4\d{11}$/);
+    assert.match(await nextNumber({ id: 't-p3', slug: 'p3', gs1CompanyPrefix: '0123' } as any, 'UPC-A'), /^123\d{9}$/);
+    assert.match(await nextNumber({ id: 't-p4', slug: 'p4', gs1CompanyPrefix: '8941' } as any, 'UPC-A'), /^4\d{11}$/);
+  });
+
+  test('numbers another database already lists are skipped; an unreachable check is reported, not hidden', async () => {
+    const tenant = { id: 't-off', slug: 'off', gs1CompanyPrefix: '61' } as any;
+    const free = await nextNumber(tenant, 'EAN-13');
+    const asked: string[] = [];
+    const skipFirstTwo = await nextBarcode(tenant, 'EAN-13', async (n) => { asked.push(n); return asked.length <= 2; });
+    assert.deepEqual(asked.length, 3);
+    assert.equal(asked[0], free);
+    assert.equal(skipFirstTwo.barcode, asked[2]);
+    assert.equal(skipFirstTwo.checked, true);
+    assert.equal(validateBarcode('EAN-13', skipFirstTwo.barcode), null);
+
+    assert.deepEqual(await nextBarcode(tenant, 'EAN-13', async () => null), { barcode: free, checked: false });
+    await assert.rejects(nextBarcode(tenant, 'EAN-13', async () => true), /next 25 numbers/);
   });
 });
 

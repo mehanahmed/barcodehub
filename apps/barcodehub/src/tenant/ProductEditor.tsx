@@ -5,15 +5,16 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { ChevronLeft, Loader2, Upload, X, Wand2, ExternalLink } from 'lucide-react';
 import { useLocalUpload } from '@/hooks/useLocalUpload';
-import { getMyProduct, saveProduct, suggestBarcode, type SaveProductInputType } from '@/lib/api';
+import { getMyProduct, saveProduct, suggestBarcode, publishToOpenFoodFacts, type SaveProductInputType } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
 import { Textarea } from '@project/components/ui/textarea';
 import { Label } from '@project/components/ui/label';
 import { Skeleton } from '@project/components/ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@project/components/ui/alert-dialog';
 import BarcodeSvg, { downloadPng, downloadSvg } from '../components/BarcodeSvg';
 import QrCode from '../components/QrCode';
-import { BARCODE_TYPES, validateBarcode, withCheckDigit, type BarcodeType } from '../lib/barcode';
+import { BARCODE_TYPES, isGlobalGtin, validateBarcode, withCheckDigit, type BarcodeType } from '../lib/barcode';
 import { errMsg } from '../lib/errors';
 
 type Form = Omit<SaveProductInputType, 'mrp' | 'id'> & { mrp: string };
@@ -38,12 +39,18 @@ export default function ProductEditor() {
   const [loading, setLoading] = useState(!!(id || from));
   const [saving, setSaving] = useState<string | null>(null);
   const [suggesting, setSuggesting] = useState(false);
+  const [offConfirm, setOffConfirm] = useState(false);
+  const [offBusy, setOffBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
 
   const suggest = async (type: BarcodeType, quiet = false) => {
     setSuggesting(true);
-    try { set('barcodeNumber', (await suggestBarcode({ type })).barcode); }
+    try {
+      const { barcode, checked } = await suggestBarcode({ type });
+      set('barcodeNumber', barcode);
+      if (!checked && !quiet) toast.info('Open Food Facts did not answer, so this number is only checked inside BarcodeHub.');
+    }
     catch (e) { if (!quiet) toast.error(errMsg(e)); }
     finally { setSuggesting(false); }
   };
@@ -66,6 +73,19 @@ export default function ProductEditor() {
       const urls = await Promise.all([...files].map(async (file) => (await upload(file)).url));
       setF((x) => ({ ...x, images: [...x.images, ...urls] }));
     } catch { toast.error('Image upload failed'); }
+  };
+
+  const publishOff = async () => {
+    if (!id) return;
+    setOffBusy(true);
+    try {
+      const r = await publishToOpenFoodFacts({ id });
+      const where = r.production ? 'Open Food Facts' : 'the Open Food Facts test server';
+      toast.success(`Sent to ${where}`, {
+        description: r.photoError ? `The photo was not accepted: ${r.photoError}` : r.photoUploaded ? 'Product details and photo saved.' : 'Product details saved (no uploaded photo to send).',
+        action: { label: 'View', onClick: () => window.open(r.url, '_blank', 'noopener') },
+      });
+    } catch (e) { toast.error(errMsg(e)); } finally { setOffBusy(false); }
   };
 
   const save = async (status: 'Draft' | 'Published') => {
@@ -170,6 +190,21 @@ export default function ProductEditor() {
                 <p className="text-xs text-muted-foreground">QR opens the public product page. Right-click to save.</p></div>
             </>
           )}
+          {id && f.status === 'Published' && !barcodeErr && isGlobalGtin(f.barcodeType, fullBarcode) && (
+            <div className="pt-3 border-t border-border space-y-2">
+              <p className="text-xs text-muted-foreground">Share this product on Open Food Facts, the open product database that apps and search engines read. Food products only.</p>
+              <Button variant="outline" className="w-full" disabled={offBusy} onClick={() => setOffConfirm(true)}>{offBusy && <Loader2 className="w-4 h-4 animate-spin" />}Publish to Open Food Facts</Button>
+            </div>
+          )}
+          <AlertDialog open={offConfirm} onOpenChange={setOffConfirm}>
+            <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Publish “{f.title}” to Open Food Facts?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The saved name, brand, weight, category, ingredients, certifications and first photo become public on Open Food Facts.
+                The details are shared under the ODbL licence and the photo under CC BY-SA, so anyone may reuse them.
+                You can't take them back from BarcodeHub: later changes have to be made on Open Food Facts.
+              </AlertDialogDescription></AlertDialogHeader>
+              <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={publishOff}>Publish</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </>

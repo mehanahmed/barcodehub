@@ -107,6 +107,10 @@ export function PublicFooter() {
         </div>
         <span>© {new Date().getFullYear()} BarcodeHub · Made in Bangladesh</span>
       </div>
+      {/* Required credit for the Open Food Facts data and photos shown on barcode pages (ODbL / CC BY-SA). */}
+      <p className="max-w-6xl mx-auto px-5 md:px-8 pb-6 text-[7px] text-muted-foreground/50">
+        Some product data and photos from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer" className="hover:underline">Open Food Facts</a> contributors, under ODbL and CC BY-SA.
+      </p>
     </footer>
   );
 }

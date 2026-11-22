@@ -1,5 +1,5 @@
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteApiPlugin } from './src/server/viteApiPlugin';
 import { readFileSync } from 'fs';
@@ -44,6 +44,9 @@ const deps = new Set([
 ]);
 
 // https://vite.dev/config/
+// Server-only settings from .env (Open Food Facts account). A variable already set in the shell wins.
+for (const [k, v] of Object.entries(loadEnv(process.env.NODE_ENV ?? 'development', __dirname, 'OFF_'))) process.env[k] ??= v;
+
 export default defineConfig({
   build: { target: 'esnext', sourcemap: false, reportCompressedSize: false },
   server: {

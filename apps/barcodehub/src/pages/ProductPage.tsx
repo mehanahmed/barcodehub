@@ -2,7 +2,8 @@ import { Fragment, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, PackageX } from 'lucide-react';
-import { getPublicProduct } from '@/lib/api';
+import { getPublicProduct, lookupOpenFoodFacts } from '@/lib/api';
+import type { OffProduct } from '../server/openFoodFacts';
 import { Skeleton } from '@project/components/ui/skeleton';
 import { Button } from '@project/components/ui/button';
 import PublicHeader, { PublicFooter } from '../components/PublicHeader';
@@ -33,6 +34,14 @@ export default function ProductPage() {
     staleTime: Infinity,
   });
   const p = data?.product as PublicProduct | null | undefined;
+  // Not a BarcodeHub product: show what Open Food Facts knows, on our page (kept noindex: it is their data).
+  const { data: offData, isLoading: offLoading } = useQuery({
+    queryKey: ['off', number],
+    queryFn: () => lookupOpenFoodFacts({ barcode: number }),
+    enabled: !!data && !p && /^\d{12,13}$/.test(number),
+    staleTime: Infinity,
+  });
+  const off = offData?.product as OffProduct | null | undefined;
   const [active, setActive] = useState(0);
   useEffect(() => setActive(0), [number]);
 
@@ -48,8 +57,10 @@ export default function ProductPage() {
     <div className="min-h-screen flex flex-col">
       <PublicHeader />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-8">
-        {isLoading ? (
+        {isLoading || (!p && offLoading && /^\d{12,13}$/.test(number)) ? (
           <div className="grid md:grid-cols-2 gap-10"><Skeleton className="aspect-square rounded-xl" /><div className="space-y-4"><Skeleton className="h-10 w-3/4" /><Skeleton className="h-24" /><Skeleton className="h-40" /></div></div>
+        ) : !p && off ? (
+          <OffProductView off={off} />
         ) : !p ? (
           <div className="text-center py-24">
             <PackageX className="w-12 h-12 mx-auto text-muted-foreground" />
@@ -97,6 +108,27 @@ export default function ProductPage() {
         )}
       </main>
       <PublicFooter />
+    </div>
+  );
+}
+
+function OffProductView({ off }: { off: OffProduct }) {
+  const specs = ([['Brand', off.brand], ['Category', off.category], ['Net weight', off.quantity], ['Sold in', off.countries]] as [string, string][]).filter(([, v]) => v);
+  return (
+    <div className="grid md:grid-cols-2 gap-10">
+      {off.image ? <img src={off.image} alt={`${off.name} — barcode ${off.barcode}`} className="w-full aspect-square object-contain bg-white border border-border rounded-xl" />
+        : <div className="w-full aspect-square bg-muted rounded-xl" />}
+      <div>
+        {off.brand && <div className="text-sm text-muted-foreground">{off.brand}</div>}
+        <h1 className="text-3xl md:text-4xl font-extrabold mt-2 leading-tight">{off.name}</h1>
+        <div className="mt-5 p-4 border border-border rounded-xl bg-card flex items-center justify-center">
+          <BarcodeSvg value={off.barcode} type={off.barcode.length === 13 ? 'EAN-13' : 'UPC-A'} height={60} className="max-w-full" />
+        </div>
+        <dl className="mt-6 grid grid-cols-2 gap-y-2.5 text-sm border-t border-border pt-5">
+          {specs.map(([k, v]) => (<Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{v}</dd></Fragment>))}
+        </dl>
+        {off.ingredients && <div className="mt-6 text-sm"><span className="font-semibold">Ingredients: </span><span className="text-muted-foreground">{off.ingredients}</span></div>}
+      </div>
     </div>
   );
 }
