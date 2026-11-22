@@ -8,6 +8,14 @@ import { lockDataDir } from '../../../../database/lock.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/** The repo's database/ folder, found by walking up, so it works from src/server and from the built dist-server/. */
+function databaseDir(): string {
+  for (let d = __dirname; ; d = path.dirname(d)) {
+    if (fs.existsSync(path.join(d, 'database', 'schema.sql'))) return path.join(d, 'database');
+    if (path.dirname(d) === d) throw new Error('database/schema.sql not found above ' + __dirname);
+  }
+}
+
 const connectionString =
   process.env.DATABASE_URL ||
   process.env.POSTGRES_URL ||
@@ -29,11 +37,11 @@ const shared = globalThis as typeof globalThis & { __bhubPglite?: { db: PGlite; 
 
 function getEmbedded(): { db: PGlite; ready: Promise<unknown> } {
   if (!shared.__bhubPglite) {
-    const dataDir = process.env.PGLITE_DATA_DIR || path.resolve(__dirname, '../../../../database/data');
+    const dataDir = process.env.PGLITE_DATA_DIR || path.join(databaseDir(), 'data');
     if (dataDir.startsWith('memory://')) {
       const db = new PGlite(dataDir);
       // A fresh in-memory database (tests) has no tables until the schema is applied.
-      const ready = db.exec(fs.readFileSync(path.resolve(__dirname, '../../../../database/schema.sql'), 'utf8'));
+      const ready = db.exec(fs.readFileSync(path.join(databaseDir(), 'schema.sql'), 'utf8'));
       shared.__bhubPglite = { db, ready };
     } else {
       lockDataDir(dataDir);

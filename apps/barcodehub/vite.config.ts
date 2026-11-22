@@ -47,8 +47,9 @@ const deps = new Set([
 // Server-only settings from .env (Open Food Facts account). A variable already set in the shell wins.
 for (const [k, v] of Object.entries(loadEnv(process.env.NODE_ENV ?? 'development', __dirname, 'OFF_'))) process.env[k] ??= v;
 
-export default defineConfig({
-  build: { target: 'esnext', sourcemap: false, reportCompressedSize: false },
+export default defineConfig(({ isSsrBuild }) => ({
+  // The server bundle (dist-server/) serves public files from dist/, so it doesn't need its own copy.
+  build: { target: 'esnext', sourcemap: false, reportCompressedSize: false, copyPublicDir: !isSsrBuild },
   server: {
     host: '::',
     port: 8080,
@@ -74,4 +75,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-});
+}));
