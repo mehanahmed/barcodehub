@@ -4,7 +4,7 @@
  * No DOM or React here: the server loads this file too.
  */
 import { SITE_URL } from './config';
-import { isGtin } from './barcode';
+import { isGlobalGtin } from './barcode';
 
 export type PublicProduct = {
   id: string; title: string; barcodeNumber: string; barcodeType: string; description: string;
@@ -52,7 +52,8 @@ export function productSeo(p: PublicProduct): Seo {
       ...(p.description ? { description: p.description } : {}),
       ...(images.length ? { image: images } : {}),
       sku: p.barcodeNumber,
-      ...(isGtin(p.barcodeType) ? { gtin: p.barcodeNumber, [p.barcodeType === 'EAN-13' ? 'gtin13' : 'gtin12']: p.barcodeNumber } : {}),
+      // Internal-use numbers keep only sku: claiming them as a GTIN would be false structured data.
+      ...(isGlobalGtin(p.barcodeType, p.barcodeNumber) ? { gtin: p.barcodeNumber, [p.barcodeType === 'EAN-13' ? 'gtin13' : 'gtin12']: p.barcodeNumber } : {}),
       brand: { '@type': 'Brand', name: brandName },
       ...(p.manufacturer ? { manufacturer: { '@type': 'Organization', name: p.manufacturer } } : {}),
       ...(p.category ? { category: p.category } : {}),

@@ -848,6 +848,14 @@ describe('Server-rendered SEO for crawlers', () => {
     const ld = seo.jsonLd as any;
     assert.equal(ld.url, seo.canonical);
     assert.equal(ld.gtin13, '8941234000017');
+    // Internal-use numbers (GS1 restricted circulation) are never published as a GTIN, only as sku.
+    for (const [type, n] of [['EAN-13', '2000000000015'], ['UPC-A', '400000000015'], ['EAN-13', '0400000000004']] as const) {
+      const internal = productSeo({ ...product, barcodeType: type, barcodeNumber: n }).jsonLd as any;
+      assert.equal(internal.gtin, undefined, n);
+      assert.equal(internal.gtin13 ?? internal.gtin12, undefined, n);
+      assert.equal(internal.sku, n);
+    }
+    assert.equal((productSeo({ ...product, barcodeType: 'UPC-A', barcodeNumber: '036000291452' }).jsonLd as any).gtin12, '036000291452');
     assert.equal(ld.image, undefined, 'no empty image array');
     assert.equal(ld.offers.availability, undefined, 'stock is never shown on the page, so it is not claimed');
     assert.equal(lookupSeo('anything').canonical, `${SITE_URL}/lookup`);

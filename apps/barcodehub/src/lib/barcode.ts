@@ -48,3 +48,14 @@ export function jsBarcodeFormat(type: string): string {
 export function isGtin(type?: string) {
   return type === 'EAN-13' || type === 'UPC-A';
 }
+
+/**
+ * True for a real, globally unique GTIN: EAN-13 / UPC-A outside GS1's restricted-circulation ranges
+ * (EAN 020–029, 040–049, 200–299, 980–999 coupons/refunds; UPC number system 2, 4, 5).
+ * Restricted numbers are reused by many shops, so they must never be published as a GTIN.
+ */
+export function isGlobalGtin(type: string | undefined, value: string) {
+  if (type === 'EAN-13') return !/^(0[24]|2|9[89])/.test(value);
+  if (type === 'UPC-A') return !/^[245]/.test(value);
+  return false;
+}
