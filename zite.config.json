@@ -1,0 +1,12 @@
+{
+  "project": {
+    "name": "Barcode SaaS",
+    "basePublicIdentifier": "fe8cdbd943eba0e6"
+  },
+  "integrations": {
+    "github": {
+      "type": "github",
+      "connectionId": "svc_583746"
+    }
+  }
+}

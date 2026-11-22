@@ -1,0 +1,33 @@
+node_modules
+dist
+.env.local
+.tsbuildinfo
+__zite__*
+.npmrc
+
+# Secrets: only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# Local database: holds real accounts (emails, password hashes). Recreate with `npm run db:migrate`.
+database/data
+database/data.*
+
+# Files people uploaded through the app
+apps/barcodehub/public/uploads/
+
+# Local agent / editor tooling and its settings
+.claude/
+.agents/
+.agentsroom/
+.mcp.json
+skills-lock.json
+
+# Not part of BarcodeHub: a separate git repo, a browser extension, stray images and a one-off script
+apps/barcodehub/Gravitas/
+apps/barcodehub/hd-image-downloader-extension/
+apps/barcodehub/Hridoy.png
+apps/barcodehub/downloaded_image_100.jpg
+apps/barcodehub/image_high_quality.jpg
+search_react_use.cjs

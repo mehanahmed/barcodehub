@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /barcode/
+Allow: /brand/
+Allow: /lookup
+Disallow: /app/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+
+Sitemap: https://barcodehub.com/sitemap.xml

@@ -1,0 +1,23 @@
+{
+  "name": "barcode-saas",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "automations/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "zitejs check",
+    "db:migrate": "node database/migrate.js"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "zitejs": "0.10.2"
+  },
+  "overrides": {
+    "zod": "^4.6.7"
+  }
+}

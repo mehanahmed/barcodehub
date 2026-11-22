@@ -1,0 +1,9 @@
+{
+  "name": "@project/components",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@animate-ui/react": "^2.0.0",
+    "motion": "^12.0.0"
+  }
+}
