@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireAdmin, fail } from '../server/helpers';
 
 export default createEndpoint({
@@ -24,8 +24,8 @@ export default createEndpoint({
     if (input.monthlyPrice < 0 || input.yearlyPrice < 0 || input.productLimit < 0) fail('Values cannot be negative.');
     const { id, ...rest } = input;
     const record = { ...rest, name: rest.name.trim() };
-    if (id) await zite.packages.update({ id, record });
-    else await zite.packages.create({ record });
+    if (id) await db.packages.update({ id, record });
+    else await db.packages.create({ record });
     return { ok: true };
   },
 });

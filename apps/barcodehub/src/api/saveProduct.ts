@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireTenant, getPackage, isExpired, first, toImageUrls, fail } from '../server/helpers';
 import { validateBarcode, withCheckDigit } from '../lib/barcode';
 
@@ -33,12 +33,12 @@ export default createEndpoint({
     const err = validateBarcode(input.barcodeType, barcode);
     if (err) fail(err);
 
-    const dup = await zite.products.findOne({ filters: { barcodeNumber: barcode } });
+    const dup = await db.products.findOne({ filters: { barcodeNumber: barcode } });
     if (dup && dup.id !== input.id) fail('This barcode number is already used by another product.');
 
     let existingImages: { url: string }[] = [];
     if (input.id) {
-      const cur = await zite.products.findOne({ id: input.id });
+      const cur = await db.products.findOne({ id: input.id });
       if (!cur || first(cur.tenant) !== tenant.id) fail('Product not found.');
       existingImages = cur.images ?? [];
     } else {
@@ -46,7 +46,7 @@ export default createEndpoint({
       if (isExpired(tenant, pkg)) fail('Your subscription has expired. Renew it to add products.');
       const limit = pkg?.productLimit ?? 0;
       if (limit > 0) {
-        const { rows } = await zite.sql({
+        const { rows } = await db.sql({
           query: `SELECT COUNT(*) AS n FROM "ProductsTenants" WHERE "tenantsId" = $1`,
           params: [tenant.id],
         });
@@ -73,10 +73,10 @@ export default createEndpoint({
       status: input.status,
     };
     if (input.id) {
-      await zite.products.update({ id: input.id, record });
+      await db.products.update({ id: input.id, record });
       return { id: input.id };
     }
-    const created = await zite.products.create({ record });
+    const created = await db.products.create({ record });
     return { id: created.id };
   },
 });

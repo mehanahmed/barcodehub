@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 
 export default createEndpoint({
   description: 'Lists active subscription packages for the pricing page',
   inputSchema: z.object({}),
   outputSchema: z.object({ packages: z.array(z.any()) }),
   execute: async () => {
-    const { records } = await zite.packages.findAll({
+    const { records } = await db.packages.findAll({
       filters: { isActive: true },
       sort: [{ field: 'sortOrder', direction: 'asc' }],
     });

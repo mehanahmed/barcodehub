@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Globe, Phone, MapPin } from 'lucide-react';
-import { getBrand } from 'zitejs/api';
+import { getBrand } from '@/lib/api';
 import { Skeleton } from '@project/components/ui/skeleton';
 import PublicHeader, { PublicFooter } from '../components/PublicHeader';
 import { useSeo } from '../lib/seo';

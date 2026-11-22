@@ -16,7 +16,7 @@ import {
   ArrowLeft,
   Phone,
 } from 'lucide-react';
-import { signIn, signUp } from 'zitejs/auth';
+import { signIn, signUp } from '@/lib/authClient';
 import { normalizePhone, isEmailIdentifier } from '../lib/phone';
 import { toast } from 'sonner';
 import { setStoredSession } from '../lib/auth';
@@ -78,7 +78,6 @@ export default function Login() {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   // Auto-redirect if user already has an active local session
   useEffect(() => {
@@ -164,27 +163,6 @@ export default function Login() {
       }
     } catch (err: any) {
       toast.error(err?.message || 'Failed to create account.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleMagicLink = async () => {
-    if (!email) {
-      toast.error('Please enter your email first.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await signIn.magicLink({
-        email: email.trim().toLowerCase(),
-        callbackURL: redirectUrl,
-      });
-      setMagicLinkSent(true);
-      toast.success('Sign-in verification link sent to your email!');
-    } catch (err: any) {
-      toast.error(err.message || 'Could not send verification link.');
     } finally {
       setIsLoading(false);
     }
@@ -358,25 +336,6 @@ export default function Login() {
               </p>
             </div>
 
-            {/* Magic Link Confirmation State */}
-            {magicLinkSent ? (
-              <div className="p-4 bg-[#c8f049]/10 border border-[#c8f049]/25 rounded-2xl text-center space-y-2 mb-4">
-                <div className="w-10 h-10 rounded-full bg-[#c8f049]/20 text-[#c8f049] flex items-center justify-center mx-auto">
-                  <ArrowRight className="w-5 h-5" />
-                </div>
-                <h3 className="font-semibold text-sm text-white">Check your email</h3>
-                <p className="text-xs text-gray-300">
-                  We sent a sign-in link to <span className="font-bold text-[#c8f049]">{email}</span>.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setMagicLinkSent(false)}
-                  className="text-xs text-[#c8f049] hover:underline pt-2 block mx-auto font-medium cursor-pointer"
-                >
-                  Use password instead
-                </button>
-              </div>
-            ) : (
               <form
                 onSubmit={mode === 'signin' ? handleEmailSignIn : handleEmailSignUp}
                 className="space-y-3.5"
@@ -450,15 +409,6 @@ export default function Login() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-medium text-gray-300">Password</label>
-                    {mode === 'signin' && (
-                      <button
-                        type="button"
-                        onClick={handleMagicLink}
-                        className="text-[11px] text-[#c8f049] hover:underline transition-colors font-medium cursor-pointer"
-                      >
-                        Email sign-in link?
-                      </button>
-                    )}
                   </div>
                   <div className="relative">
                     <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" viewBox="0 0 24 24" fill="currentColor">
@@ -498,7 +448,6 @@ export default function Login() {
                   )}
                 </button>
               </form>
-            )}
 
             {/* Toggle Between Sign In & Sign Up */}
             <div className="mt-5 text-center pt-3 border-t border-white/10">

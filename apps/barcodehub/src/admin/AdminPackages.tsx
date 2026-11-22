@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2, Sparkles, ShieldAlert, CheckCircle2 } from 'lucide-react';
-import { adminListPackages, adminSavePackage, adminDeletePackage } from 'zitejs/api';
+import { adminListPackages, adminSavePackage, adminDeletePackage } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
 import { Label } from '@project/components/ui/label';

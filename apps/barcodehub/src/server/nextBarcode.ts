@@ -1,5 +1,5 @@
-import { zite } from 'zitejs/db';
-import type { TenantsRecordType } from 'zitejs/db';
+import { db } from './db';
+import type { TenantsRecordType } from './db';
 import { gs1CheckDigit } from '../lib/barcode';
 import { fail } from './helpers';
 
@@ -30,7 +30,7 @@ export async function nextBarcode(tenant: TenantsRecordType, type: string): Prom
   if (type === 'System Code128') {
     const code = (tenant.slug ?? 'XXX').replace(/[^a-z0-9]/gi, '').slice(0, 3).toUpperCase().padEnd(3, 'X');
     const prefix = `BH-${code}-`;
-    const { rows } = await zite.sql({
+    const { rows } = await db.sql({
       query: `SELECT MAX(CAST(SUBSTRING("barcodeNumber" FROM $2) AS INTEGER)) AS m FROM "Products"
               WHERE "barcodeNumber" LIKE $1 AND "barcodeNumber" ~ '^BH-[A-Z0-9]{3}-[0-9]{6}$'`,
       params: [`${prefix}%`, prefix.length + 1],
@@ -43,7 +43,7 @@ export async function nextBarcode(tenant: TenantsRecordType, type: string): Prom
   const { prefix, bodyLen } = rangeFor(tenant, type as keyof typeof INTERNAL_RANGES);
   const refLen = bodyLen - prefix.length;
   // Numbering is shared by all brands: barcodeNumber is unique across BarcodeHub.
-  const { rows } = await zite.sql({
+  const { rows } = await db.sql({
     // ::int casts: untyped FROM/FOR params make Postgres pick the regex form of SUBSTRING.
     query: `SELECT MAX(CAST(SUBSTRING("barcodeNumber" FROM $2::int FOR $3::int) AS BIGINT)) AS m FROM "Products"
             WHERE "barcodeNumber" LIKE $1 AND "barcodeNumber" ~ '^[0-9]+$' AND LENGTH("barcodeNumber") = $4`,

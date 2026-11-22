@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getMyAccount } from 'zitejs/api';
+import { getMyAccount } from '@/lib/api';
 
 export interface Account {
   isAdmin: boolean;

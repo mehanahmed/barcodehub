@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireTenant, getPackage, first } from '../server/helpers';
 
 export default createEndpoint({
@@ -16,18 +16,18 @@ export default createEndpoint({
                   WHERE lt."tenantsId" = $1 AND v.created_at >= now() - ($2 || ' days')::interval`;
     const params = [tenant.id, String(days)];
 
-    const totals = await zite.sql({
+    const totals = await db.sql({
       query: `SELECT COUNT(*) AS total,
                 COUNT(*) FILTER (WHERE v."source" = 'QR Scan') AS qr,
                 COUNT(*) FILTER (WHERE v."source" = 'Search') AS search ${base}`,
       params,
     });
-    const counts = await zite.sql({
+    const counts = await db.sql({
       query: `SELECT COUNT(*) AS products, COUNT(*) FILTER (WHERE p."status" = 'Published') AS published
               FROM "Products" p JOIN "ProductsTenants" l ON l."productsId" = p.id WHERE l."tenantsId" = $1`,
       params: [tenant.id],
     });
-    const top = await zite.sql({
+    const top = await db.sql({
       query: `SELECT p."title", p."barcodeNumber", COUNT(*) AS views ${base.replace('WHERE', `JOIN "ProductViewsProducts" lp ON lp."productViewsId" = v.id JOIN "Products" p ON p.id = lp."productsId" WHERE`)}
               GROUP BY p.id ORDER BY views DESC LIMIT 5`,
       params,
@@ -46,11 +46,11 @@ export default createEndpoint({
       bySource: [] as { source: string; views: number }[],
     };
     if (result.enabled) {
-      const daily = await zite.sql({
+      const daily = await db.sql({
         query: `SELECT to_char(v.created_at, 'YYYY-MM-DD') AS date, COUNT(*) AS views ${base} GROUP BY 1 ORDER BY 1`,
         params,
       });
-      const src = await zite.sql({
+      const src = await db.sql({
         query: `SELECT COALESCE(v."source", 'Direct') AS source, COUNT(*) AS views ${base} GROUP BY 1`,
         params,
       });

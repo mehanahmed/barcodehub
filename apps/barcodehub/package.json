@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "node tests/run.mjs tests/security-regression.test.ts",
-    "typecheck": "npx tsgo --noEmit -p tsconfig.app.json --pretty"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "2.45.6",
@@ -95,8 +95,6 @@
     "three": "^0.187.0",
     "tiptap-markdown": "^0.9.0",
     "use-debounce": "10.0.6",
-    "vite-plugin-insert-html": "^1.0.3",
-    "zitejs": "0.10.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {

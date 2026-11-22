@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Plus, Printer, Search, MoreHorizontal, ArrowUpDown, Pencil, ExternalLink, Download, Copy, Trash2, Package } from 'lucide-react';
-import { listMyProducts, deleteProduct } from 'zitejs/api';
+import { listMyProducts, deleteProduct } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
 import { Checkbox } from '@project/components/ui/checkbox';

@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from 'zitejs/auth';
+import { useAuth } from '@/lib/authClient';
 import { Loader2 } from 'lucide-react';
 import { getStoredUser } from '../lib/auth';
 
@@ -19,9 +19,6 @@ export default function AuthGate({ children, loginPath = '/login' }: { children:
       // Server session is dead or expired: clean stale cache and redirect to login
       try {
         localStorage.removeItem('barcodehub_user');
-        localStorage.removeItem('zite.auth.token');
-        localStorage.removeItem('better-auth.session_token');
-        delete (window as any)._ziteUsageToken;
       } catch {
         // ignore storage errors
       }

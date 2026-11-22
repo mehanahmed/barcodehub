@@ -26,7 +26,7 @@ export const SECURITY_HEADERS: Readonly<Record<string, string>> = Object.freeze(
   // CWE-79 / CWE-352: Comprehensive Content Security Policy
   'Content-Security-Policy': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://server.zite.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline' https:",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https:",

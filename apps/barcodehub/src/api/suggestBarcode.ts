@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
+import { createEndpoint } from '../server/endpoint';
 import { requireTenant } from '../server/helpers';
 import { nextBarcode } from '../server/nextBarcode';
 

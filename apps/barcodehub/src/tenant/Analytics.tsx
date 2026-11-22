@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Lock } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
-import { getAnalytics } from 'zitejs/api';
+import { getAnalytics } from '@/lib/api';
 import { Skeleton } from '@project/components/ui/skeleton';
 import { Button } from '@project/components/ui/button';
 import { PageHeader, Stat } from '../components/Shell';

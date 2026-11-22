@@ -8,14 +8,13 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "zitejs check",
+    "typecheck": "npm run typecheck -w @project/barcodehub",
     "db:migrate": "node database/migrate.js"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
     "@types/pg": "^8.23.1",
-    "pg": "^8.23.1",
-    "zitejs": "0.10.2"
+    "pg": "^8.23.1"
   },
   "overrides": {
     "zod": "^4.6.7"

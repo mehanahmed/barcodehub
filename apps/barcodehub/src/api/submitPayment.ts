@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireTenant, fail } from '../server/helpers';
 
 export default createEndpoint({
@@ -19,16 +19,16 @@ export default createEndpoint({
     const txn = input.transactionId.trim().toUpperCase();
     if (txn.length < 4) fail('Enter a valid transaction ID.');
     if (input.senderNumber.trim().length < 5) fail('Enter the number or account you paid from.');
-    const pkg = await zite.packages.findOne({ id: input.packageId });
+    const pkg = await db.packages.findOne({ id: input.packageId });
     if (!pkg || !pkg.isActive) fail('Package not found.');
     const amount = input.billingPeriod === 'Yearly' ? pkg.yearlyPrice ?? 0 : pkg.monthlyPrice ?? 0;
     if (amount <= 0) fail('This package is free — no payment needed.');
 
-    if (await zite.payments.findOne({ filters: { transactionId: txn } })) fail('This transaction ID was already submitted.');
-    const pending = await zite.payments.findOne({ filters: { tenant: tenant.id, status: 'Pending' } });
+    if (await db.payments.findOne({ filters: { transactionId: txn } })) fail('This transaction ID was already submitted.');
+    const pending = await db.payments.findOne({ filters: { tenant: tenant.id, status: 'Pending' } });
     if (pending) fail('You already have a payment waiting for review.');
 
-    await zite.payments.create({
+    await db.payments.create({
       record: {
         transactionId: txn,
         tenant: tenant.id,

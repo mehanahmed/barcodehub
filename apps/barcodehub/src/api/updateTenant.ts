@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireTenant, fail, toImageUrl } from '../server/helpers';
 
 export default createEndpoint({
@@ -24,11 +24,11 @@ export default createEndpoint({
     const prefix = input.gs1CompanyPrefix?.trim() ?? '';
     // No minimum length; at most 11 digits so an EAN-13 still has room for an item number and the check digit.
     if (prefix && !/^\d{1,11}$/.test(prefix)) fail('Company prefix must be digits only, at most 11.');
-    const clash = await zite.tenants.findOne({ filters: { slug } });
+    const clash = await db.tenants.findOne({ filters: { slug } });
     if (clash && clash.id !== tenant.id) fail('That URL slug is already taken.');
 
     const currentLogo = toImageUrl(tenant.logo);
-    await zite.tenants.update({
+    await db.tenants.update({
       id: tenant.id,
       record: {
         companyName: input.companyName.trim(),

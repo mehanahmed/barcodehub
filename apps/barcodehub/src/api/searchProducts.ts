@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { toImageUrl } from '../server/helpers';
 
 export default createEndpoint({
@@ -10,7 +10,7 @@ export default createEndpoint({
   execute: async ({ input }) => {
     const q = input.q.trim();
     if (q.length < 2) return { results: [] };
-    const { rows } = await zite.sql({
+    const { rows } = await db.sql({
       query: `
         SELECT p.id, p."title", p."barcodeNumber", p."brand", p."images", t."companyName"
         FROM "Products" p

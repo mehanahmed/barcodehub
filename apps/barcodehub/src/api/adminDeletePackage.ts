@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireAdmin, fail } from '../server/helpers';
 
 export default createEndpoint({
@@ -10,10 +10,10 @@ export default createEndpoint({
   outputSchema: z.object({ ok: z.boolean() }),
   execute: async ({ input, context }) => {
     await requireAdmin(context);
-    const pkg = await zite.packages.findOne({ id: input.id });
+    const pkg = await db.packages.findOne({ id: input.id });
     if (!pkg) fail('Package not found.');
 
-    const { records: tenantsUsing } = await zite.tenants.findAll({
+    const { records: tenantsUsing } = await db.tenants.findAll({
       filters: { package: input.id },
       limit: 1,
     });
@@ -21,7 +21,7 @@ export default createEndpoint({
       fail('Cannot delete this package because it is currently assigned to one or more tenants. Deactivate (hide) it instead.');
     }
 
-    await zite.packages.delete({ id: input.id });
+    await db.packages.delete({ id: input.id });
     return { ok: true };
   },
 });

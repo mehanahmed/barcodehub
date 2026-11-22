@@ -1,4 +1,4 @@
-import { zite } from 'zitejs/db';
+import { db } from './db';
 
 export interface ViewContext {
   ip?: string;
@@ -92,7 +92,7 @@ export async function recordProductView(
       return { recorded: false, reason: decision.reason };
     }
 
-    await zite.productViews.create({
+    await db.productViews.create({
       record: {
         product: productId,
         tenant: tenantId,

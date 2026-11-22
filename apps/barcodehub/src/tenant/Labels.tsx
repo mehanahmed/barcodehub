@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, Printer } from 'lucide-react';
-import { listMyProducts } from 'zitejs/api';
+import { listMyProducts } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Skeleton } from '@project/components/ui/skeleton';
 import BarcodeSvg from '../components/BarcodeSvg';

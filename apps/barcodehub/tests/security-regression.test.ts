@@ -4,7 +4,8 @@ import path from 'node:path';
 import { rm, readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import { uploadFile } from '../src/server/upload';
-import { createPgTableClient, pgDb } from '../src/server/pgClient';
+import { createPgTableClient } from '../src/server/pgClient';
+import { db as pgDb } from '../src/server/db';
 import {
   createSessionToken,
   verifySessionToken,
@@ -41,32 +42,11 @@ import { renderHead, injectSeo, productBody, brandBody } from '../src/server/seo
 import { productSeo, productNotFoundSeo, lookupSeo, type PublicProduct } from '../src/lib/seoData';
 import { SITE_URL } from '../src/lib/config';
 import { nextBarcode } from '../src/server/nextBarcode';
+import searchProductsEndpoint from '../src/api/searchProducts';
 import { normalizePhone } from '../src/lib/phone';
 
 /** A random valid Bangladeshi mobile number, so each sign-up in the shared test database is unique. */
 const testPhone = () => '017' + String(Math.floor(Math.random() * 1e8)).padStart(8, '0');
-
-// Initialize PostgreSQL bridge so zite.* calls inside endpoints resolve in test environment
-(globalThis as any).__wrapSdkCall = async (_id: string, className: string, method: string, args: any) => {
-  if (className === 'Db' && method === 'executeSql') {
-    return pgDb.sql({ query: args.query, params: args.params });
-  }
-  if (className === 'Auth') {
-    const fn = (pgDb.auth as any)[method];
-    if (typeof fn === 'function') return fn(args);
-  }
-  const name = className.toLowerCase();
-  const tableMap: Record<string, string> = {
-    productviews: 'productViews',
-    ziteusers: 'auth',
-  };
-  const key = tableMap[name] || name;
-  const client = (pgDb as any)[key] || (pgDb as any)[className] || (pgDb as any)[name];
-  if (client && typeof client[method] === 'function') {
-    return client[method](args);
-  }
-  throw new Error(`Test handler for ${className}.${method} not found`);
-};
 
 describe('FIND-001: uploadFile Security Regressions', () => {
   const createdFiles: string[] = [];
@@ -585,7 +565,7 @@ describe('FIND-005: HTTP Security Headers Regressions', () => {
     assert.ok(csp.includes("frame-ancestors 'self'"), 'CSP requires frame-ancestors');
     assert.ok(csp.includes("base-uri 'self'"), 'CSP requires base-uri');
     assert.ok(csp.includes("form-action 'self'"), 'CSP requires form-action');
-    assert.ok(csp.includes('https://server.zite.com'), 'CSP allows runtime app-runtime.js');
+    assert.ok(!csp.includes('zite'), 'no third-party runtime script is allowed');
   });
 
   test('applySecurityHeaders attaches all security headers to a response object', () => {
@@ -762,7 +742,13 @@ describe('FIND-005: HTTP Security Headers Regressions', () => {
 
 describe('API server resilience and sign-in lockout', () => {
   const middlewares: Array<(req: any, res: any, next: () => void) => Promise<void> | void> = [];
-  viteApiPlugin().configureServer!({ config: { root: process.cwd() }, middlewares: { use: (fn: any) => middlewares.push(fn) } } as any);
+  // ssrLoadModule serves the one real endpoint the validation test needs.
+  const endpoints: Record<string, unknown> = { searchProducts: { default: searchProductsEndpoint } };
+  viteApiPlugin().configureServer!({
+    config: { root: process.cwd() },
+    middlewares: { use: (fn: any) => middlewares.push(fn) },
+    ssrLoadModule: async (file: string) => endpoints[path.basename(file, '.ts')] ?? {},
+  } as any);
   const api = middlewares[2];
   const mockRes = () => {
     const headers: Record<string, unknown> = {};
@@ -778,6 +764,15 @@ describe('API server resilience and sign-in lockout', () => {
     await api({ url, headers: { 'content-type': 'application/json', ...extraHeaders }, socket: {}, [Symbol.asyncIterator]: async function* () { yield Buffer.from(JSON.stringify(body)); } }, res, () => {});
     return res;
   };
+
+  test('every endpoint request is checked against its input schema before it runs', async () => {
+    const bad = await call('/api/searchProducts', { inputs: { q: 12345 } });
+    assert.equal(bad.statusCode, 400);
+    assert.match(bad.body, /Invalid request\. q: /);
+    const good = await call('/api/searchProducts', { inputs: { q: 'zz-no-such-product' } });
+    assert.equal(good.statusCode, 200);
+    assert.deepEqual(JSON.parse(good.body), { results: [] });
+  });
 
   test('a malformed session cookie is treated as signed out, not a crash', async () => {
     const res = await call('/api/auth/session', {}, { cookie: 'barcodehub_session=%E0%A4%A' });

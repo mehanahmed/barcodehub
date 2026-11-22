@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { pgDb } from './pgClient';
+import { db } from './db';
 
 // Resolved on first use, not at import: `vite build` imports this file through vite.config.ts
 // in production mode but never signs a session, so it must not need the secret.
@@ -17,7 +17,7 @@ const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 /** Admin rights belong to an account id. Emails are unverified, so they never grant admin. */
 export async function checkIsAdmin(userId?: string | null): Promise<boolean> {
   if (!userId || typeof userId !== 'string') return false;
-  const admin = await pgDb.admins.findOne({ filters: { userId } });
+  const admin = await db.admins.findOne({ filters: { userId } });
   return !!admin;
 }
 

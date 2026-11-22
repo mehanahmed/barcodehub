@@ -1,4 +1,4 @@
-// Runs node:test files through Vite so `zitejs/*` aliases and TypeScript resolve the same way as in the app.
+// Runs node:test files through Vite so the `@/` alias and TypeScript resolve the same way as in the app.
 // Tests always use a throwaway in-memory database, never database/data.
 import { after } from 'node:test';
 import { createServer } from 'vite';

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireTenant, first, fail } from '../server/helpers';
 
 export default createEndpoint({
@@ -10,9 +10,9 @@ export default createEndpoint({
   outputSchema: z.object({ ok: z.boolean() }),
   execute: async ({ input, context }) => {
     const tenant = await requireTenant(context);
-    const p = await zite.products.findOne({ id: input.id });
+    const p = await db.products.findOne({ id: input.id });
     if (!p || first(p.tenant) !== tenant.id) fail('Product not found.');
-    await zite.products.delete({ id: input.id });
+    await db.products.delete({ id: input.id });
     return { ok: true };
   },
 });

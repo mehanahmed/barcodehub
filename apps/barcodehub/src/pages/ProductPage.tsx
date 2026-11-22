@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, PackageX } from 'lucide-react';
-import { getPublicProduct } from 'zitejs/api';
+import { getPublicProduct } from '@/lib/api';
 import { Skeleton } from '@project/components/ui/skeleton';
 import { Button } from '@project/components/ui/button';
 import PublicHeader, { PublicFooter } from '../components/PublicHeader';

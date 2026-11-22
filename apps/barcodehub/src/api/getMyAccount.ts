@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { findMyTenant, getPackage, isExpired, checkIsAdmin, first, toImageUrl } from '../server/helpers';
 
 export default createEndpoint({
@@ -10,12 +10,12 @@ export default createEndpoint({
   outputSchema: z.object({ account: z.any() }),
   execute: async ({ context }) => {
     const isAdmin = await checkIsAdmin(context.user.id);
-    const { records: anyAdmin } = await zite.admins.findAll({ limit: 1 });
+    const { records: anyAdmin } = await db.admins.findAll({ limit: 1 });
     const tenant = await findMyTenant(context.user.id);
     if (!tenant) return { account: { tenant: null, isAdmin, noAdminsYet: anyAdmin.length === 0 } };
 
     const pkg = await getPackage(first(tenant.package));
-    const { rows } = await zite.sql({
+    const { rows } = await db.sql({
       query: `SELECT COUNT(*) AS n FROM "ProductsTenants" WHERE "tenantsId" = $1`,
       params: [tenant.id],
     });

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { SITE_URL } from '../lib/config';
 import { productPath, brandPath } from '../lib/seoData';
 
@@ -21,7 +21,7 @@ export default createEndpoint({
   outputSchema: z.object({ xml: z.string() }),
   execute: async () => {
     // One query each, no row limit: the old findAll() stopped at 500 and listed suspended brands' products.
-    const { rows: products } = await zite.sql({
+    const { rows: products } = await db.sql({
       query: `SELECT p."barcodeNumber" AS barcode, to_char(p.updated_at, 'YYYY-MM-DD') AS lastmod
               FROM "Products" p
               JOIN "ProductsTenants" l ON l."productsId" = p.id
@@ -29,7 +29,7 @@ export default createEndpoint({
               WHERE p."status" = 'Published' AND (t."status" IS NULL OR t."status" <> 'Suspended')
               ORDER BY p."barcodeNumber"`,
     });
-    const { rows: brands } = await zite.sql({
+    const { rows: brands } = await db.sql({
       query: `SELECT "slug", to_char(updated_at, 'YYYY-MM-DD') AS lastmod
               FROM "Tenants" WHERE "slug" IS NOT NULL AND ("status" IS NULL OR "status" <> 'Suspended')
               ORDER BY "slug"`,

@@ -1,5 +1,5 @@
-import { ZiteError, type ZiteRequestContext } from 'zitejs/backend';
-import { zite, type TenantsRecordType, type PackagesRecordType } from 'zitejs/db';
+import { ApiError, type RequestContext } from './endpoint';
+import { db, type TenantsRecordType, type PackagesRecordType } from './db';
 
 import { checkIsAdmin } from './session';
 
@@ -25,24 +25,24 @@ export function toImageUrls(images: any): string[] {
 }
 
 export async function findMyTenant(userId: string) {
-  const { records } = await zite.tenants.findAll({ filters: { owner: userId }, limit: 1 });
+  const { records } = await db.tenants.findAll({ filters: { owner: userId }, limit: 1 });
   return records[0] as TenantsRecordType | undefined;
 }
 
-export async function requireTenant(context: ZiteRequestContext) {
+export async function requireTenant(context: RequestContext) {
   const tenant = await findMyTenant(context.user.id);
   if (!tenant) {
-    throw new ZiteError({ code: 'NOT_FOUND', message: 'No tenant', userFacingMessage: 'Please set up your company first.' });
+    throw new ApiError({ code: 'NOT_FOUND', message: 'No tenant', userFacingMessage: 'Please set up your company first.' });
   }
   if (tenant.status === 'Suspended') {
-    throw new ZiteError({ code: 'FORBIDDEN', message: 'Suspended', userFacingMessage: 'This account is suspended. Please contact support.' });
+    throw new ApiError({ code: 'FORBIDDEN', message: 'Suspended', userFacingMessage: 'This account is suspended. Please contact support.' });
   }
   return tenant;
 }
 
 export async function getPackage(id?: string) {
   if (!id) return undefined;
-  return (await zite.packages.findOne({ id })) as PackagesRecordType | undefined;
+  return (await db.packages.findOne({ id })) as PackagesRecordType | undefined;
 }
 
 export function isExpired(tenant: TenantsRecordType, pkg?: PackagesRecordType) {
@@ -53,15 +53,15 @@ export function isExpired(tenant: TenantsRecordType, pkg?: PackagesRecordType) {
   return tenant.subscriptionEnds < new Date().toISOString().slice(0, 10);
 }
 
-export async function requireAdmin(context: ZiteRequestContext) {
+export async function requireAdmin(context: RequestContext) {
   if (!context?.user?.id) {
-    throw new ZiteError({ code: 'UNAUTHORIZED', message: 'Authentication required', userFacingMessage: 'Please sign in to continue.' });
+    throw new ApiError({ code: 'UNAUTHORIZED', message: 'Authentication required', userFacingMessage: 'Please sign in to continue.' });
   }
   if (!(await checkIsAdmin(context.user.id))) {
-    throw new ZiteError({ code: 'FORBIDDEN', message: 'Not admin', userFacingMessage: 'Admin access only.' });
+    throw new ApiError({ code: 'FORBIDDEN', message: 'Not admin', userFacingMessage: 'Admin access only.' });
   }
 }
 
 export function fail(message: string): never {
-  throw new ZiteError({ code: 'BAD_REQUEST', message, userFacingMessage: message });
+  throw new ApiError({ code: 'BAD_REQUEST', message, userFacingMessage: message });
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2, LogOut } from 'lucide-react';
-import { useAuth, updateProfile } from 'zitejs/auth';
+import { useAuth, updateProfile } from '@/lib/authClient';
 import { logout } from '../lib/auth';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
@@ -16,7 +16,7 @@ export default function Profile() {
   const [last, setLast] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (user) { setFirst(user.firstName ?? ''); setLast(user.lastName ?? ''); setImage(user.image); } }, [user]);
+  useEffect(() => { if (user) { setFirst(user.firstName ?? ''); setLast(user.lastName ?? ''); setImage(user.image ?? null); } }, [user]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();

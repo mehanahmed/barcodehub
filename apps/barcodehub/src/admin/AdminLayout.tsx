@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { LayoutDashboard, Building2, Wallet, Package, ShieldCheck, Loader2, ShieldAlert, ArrowLeft } from 'lucide-react';
-import { adminManageAdmins, adminOverview } from 'zitejs/api';
+import { adminManageAdmins, adminOverview } from '@/lib/api';
 import { logout } from '../lib/auth';
 import { Button } from '@project/components/ui/button';
 import Shell from '../components/Shell';

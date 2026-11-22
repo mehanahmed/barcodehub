@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { adminOverview } from 'zitejs/api';
+import { adminOverview } from '@/lib/api';
 import { Skeleton } from '@project/components/ui/skeleton';
 import { PageHeader, Stat } from '../components/Shell';
 import { formatTk } from '../lib/config';

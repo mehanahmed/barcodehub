@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireAdmin, first, fail } from '../server/helpers';
 
 export default createEndpoint({
@@ -10,17 +10,17 @@ export default createEndpoint({
   outputSchema: z.object({ ok: z.boolean() }),
   execute: async ({ input, context }) => {
     await requireAdmin(context);
-    const pay = await zite.payments.findOne({ id: input.id });
+    const pay = await db.payments.findOne({ id: input.id });
     if (!pay) fail('Payment not found.');
     if (pay.status !== 'Pending') fail('This payment was already reviewed.');
     if (!input.approve && !input.note.trim()) fail('Add a note explaining the rejection.');
 
     const tenantId = first(pay.tenant);
-    const tenant = input.approve && tenantId ? await zite.tenants.findOne({ id: tenantId }) : undefined;
+    const tenant = input.approve && tenantId ? await db.tenants.findOne({ id: tenantId }) : undefined;
     if (input.approve && !tenant) fail('Tenant not found.');
 
     // Claim the payment in one conditional write, so a double-click or a second admin can't apply it twice.
-    const { rows } = await zite.sql({
+    const { rows } = await db.sql({
       query: `UPDATE "Payments" SET "status" = $2, "adminNote" = $3, "reviewedBy" = $4, "reviewedAt" = now()
               WHERE "id" = $1 AND "status" = 'Pending' RETURNING "id"`,
       params: [pay.id, input.approve ? 'Approved' : 'Rejected', input.note.trim() || null, context.user.id],
@@ -35,13 +35,13 @@ export default createEndpoint({
       if (pay.billingPeriod === 'Yearly') start.setUTCFullYear(start.getUTCFullYear() + 1);
       else start.setUTCMonth(start.getUTCMonth() + 1);
       try {
-        await zite.tenants.update({
+        await db.tenants.update({
           id: tenant.id,
           record: { package: first(pay.package) ?? null, subscriptionEnds: start.toISOString().slice(0, 10) },
         });
       } catch (err) {
         // Put the payment back so the admin can retry instead of it showing Approved with no time added.
-        await zite.payments.update({ id: pay.id, record: { status: 'Pending', adminNote: null, reviewedBy: null, reviewedAt: null } });
+        await db.payments.update({ id: pay.id, record: { status: 'Pending', adminNote: null, reviewedBy: null, reviewedAt: null } });
         throw err;
       }
     }

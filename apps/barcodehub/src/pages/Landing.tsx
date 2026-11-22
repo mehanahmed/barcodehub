@@ -7,9 +7,9 @@ import {
   QrCode, Menu, X as XIcon, ChevronRight, TrendingUp, Sparkles,
   ShieldCheck, Printer, BarChart3,
 } from 'lucide-react';
-import { useAuth } from 'zitejs/auth';
+import { useAuth } from '@/lib/authClient';
 import { getStoredUser } from '../lib/auth';
-import { listPackages } from 'zitejs/api';
+import { listPackages } from '@/lib/api';
 import { Skeleton } from '@project/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@project/components/ui/accordion';
 import { useSeo } from '../lib/seo';

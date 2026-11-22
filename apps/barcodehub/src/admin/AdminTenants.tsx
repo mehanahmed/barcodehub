@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Search, Loader2, ExternalLink } from 'lucide-react';
-import { adminListTenants, adminListPackages, adminUpdateTenant } from 'zitejs/api';
+import { adminListTenants, adminListPackages, adminUpdateTenant } from '@/lib/api';
 import { Input } from '@project/components/ui/input';
 import { Label } from '@project/components/ui/label';
 import { Button } from '@project/components/ui/button';

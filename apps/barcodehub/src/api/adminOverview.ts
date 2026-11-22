@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireAdmin } from '../server/helpers';
 
 export default createEndpoint({
@@ -11,15 +11,15 @@ export default createEndpoint({
   execute: async ({ context }) => {
     await requireAdmin(context);
     const [t, r, p, v, pend, rev, nt] = await Promise.all([
-      zite.sql({ query: `SELECT COUNT(*) FILTER (WHERE "status" IS NULL OR "status" <> 'Suspended') AS n, COUNT(*) AS total FROM "Tenants"` }),
-      zite.sql({ query: `SELECT COALESCE(SUM("amount"),0) AS n FROM "Payments" WHERE "status" = 'Approved' AND "reviewedAt" >= now() - interval '30 days'` }),
-      zite.sql({ query: `SELECT COUNT(*) AS n FROM "Products"` }),
-      zite.sql({ query: `SELECT COUNT(*) AS n FROM "ProductViews" WHERE created_at >= now() - interval '30 days'` }),
-      zite.sql({ query: `SELECT COUNT(*) AS n FROM "Payments" WHERE "status" = 'Pending'` }),
-      zite.sql({ query: `SELECT to_char(date_trunc('month', "reviewedAt"), 'YYYY-MM') AS month, SUM("amount") AS total
+      db.sql({ query: `SELECT COUNT(*) FILTER (WHERE "status" IS NULL OR "status" <> 'Suspended') AS n, COUNT(*) AS total FROM "Tenants"` }),
+      db.sql({ query: `SELECT COALESCE(SUM("amount"),0) AS n FROM "Payments" WHERE "status" = 'Approved' AND "reviewedAt" >= now() - interval '30 days'` }),
+      db.sql({ query: `SELECT COUNT(*) AS n FROM "Products"` }),
+      db.sql({ query: `SELECT COUNT(*) AS n FROM "ProductViews" WHERE created_at >= now() - interval '30 days'` }),
+      db.sql({ query: `SELECT COUNT(*) AS n FROM "Payments" WHERE "status" = 'Pending'` }),
+      db.sql({ query: `SELECT to_char(date_trunc('month', "reviewedAt"), 'YYYY-MM') AS month, SUM("amount") AS total
                          FROM "Payments" WHERE "status" = 'Approved' AND "reviewedAt" >= date_trunc('month', now()) - interval '5 months'
                          GROUP BY 1 ORDER BY 1` }),
-      zite.sql({ query: `SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month, COUNT(*) AS total
+      db.sql({ query: `SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS month, COUNT(*) AS total
                          FROM "Tenants" WHERE created_at >= date_trunc('month', now()) - interval '5 months'
                          GROUP BY 1 ORDER BY 1` }),
     ]);

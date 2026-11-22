@@ -16,8 +16,8 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
-import { useAuth } from 'zitejs/auth';
-import { getAnalytics } from 'zitejs/api';
+import { useAuth } from '@/lib/authClient';
+import { getAnalytics } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Skeleton } from '@project/components/ui/skeleton';
 import { Progress } from '@project/components/ui/progress';

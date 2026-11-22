@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, Lock, ScanBarcode, ShieldCheck } from 'lucide-react';
-import { signIn, signOut } from 'zitejs/auth';
-import { getMyAccount } from 'zitejs/api';
+import { signIn, signOut } from '@/lib/authClient';
+import { getMyAccount } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
 import { Label } from '@project/components/ui/label';

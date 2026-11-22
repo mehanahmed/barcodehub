@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireAdmin } from '../server/helpers';
 
 export default createEndpoint({
@@ -10,7 +10,7 @@ export default createEndpoint({
   outputSchema: z.object({ packages: z.array(z.any()) }),
   execute: async ({ context }) => {
     await requireAdmin(context);
-    const { records } = await zite.packages.findAll({ sort: [{ field: 'sortOrder', direction: 'asc' }] });
+    const { records } = await db.packages.findAll({ sort: [{ field: 'sortOrder', direction: 'asc' }] });
     return {
       packages: records.map((p) => ({
         id: p.id,

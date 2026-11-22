@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint, type ZiteRequestContext } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint, type RequestContext } from '../server/endpoint';
+import { db } from '../server/db';
 import { first, toImageUrl, toImageUrls } from '../server/helpers';
 import { recordProductView } from '../server/viewTracker';
 
@@ -12,17 +12,17 @@ export default createEndpoint({
   }),
   outputSchema: z.object({ product: z.any().nullable() }),
   execute: async ({ input, context }) => {
-    const p = await zite.products.findOne({
+    const p = await db.products.findOne({
       filters: { barcodeNumber: input.barcode.trim().toUpperCase(), status: 'Published' },
     });
     if (!p) return { product: null };
     const tenantId = first(p.tenant);
-    const tenant = tenantId ? await zite.tenants.findOne({ id: tenantId }) : undefined;
+    const tenant = tenantId ? await db.tenants.findOne({ id: tenantId }) : undefined;
     if (!tenant || tenant.status === 'Suspended') return { product: null };
 
     // Record visit non-blockingly with deduplication and rate limiting
     if (input.source) {
-      const ctx = context as (ZiteRequestContext & {
+      const ctx = context as (RequestContext & {
         headers?: Record<string, string | string[] | undefined>;
         ip?: string;
       }) | undefined;

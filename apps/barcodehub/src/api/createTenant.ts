@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { findMyTenant, fail } from '../server/helpers';
 
 export default createEndpoint({
@@ -14,14 +14,14 @@ export default createEndpoint({
     const slug = input.slug.trim().toLowerCase();
     if (name.length < 2) fail('Company name is too short.');
     if (!/^[a-z0-9-]{3,40}$/.test(slug)) fail('Slug must be 3–40 lowercase letters, digits or dashes.');
-    if (await zite.tenants.findOne({ filters: { slug } })) fail('That URL slug is already taken.');
+    if (await db.tenants.findOne({ filters: { slug } })) fail('That URL slug is already taken.');
 
-    const { records: free } = await zite.packages.findAll({
+    const { records: free } = await db.packages.findAll({
       filters: { isActive: true, monthlyPrice: 0 },
       sort: [{ field: 'sortOrder', direction: 'asc' }],
       limit: 1,
     });
-    const t = await zite.tenants.create({
+    const t = await db.tenants.create({
       record: {
         companyName: name,
         slug,

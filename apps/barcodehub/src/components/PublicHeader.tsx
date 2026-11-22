@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ScanBarcode, Menu, X } from 'lucide-react';
-import { useAuth, loginWithRedirect } from 'zitejs/auth';
+import { useAuth, loginWithRedirect } from '@/lib/authClient';
 import { Button } from '@project/components/ui/button';
 
 export function Logo({ className = '' }: { className?: string }) {

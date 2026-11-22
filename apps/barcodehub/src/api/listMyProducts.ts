@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireTenant, toImageUrl } from '../server/helpers';
 
 export default createEndpoint({
@@ -10,7 +10,7 @@ export default createEndpoint({
   outputSchema: z.object({ products: z.array(z.any()) }),
   execute: async ({ context }) => {
     const tenant = await requireTenant(context);
-    const { rows } = await zite.sql({
+    const { rows } = await db.sql({
       query: `
         SELECT p.id, p."title", p."barcodeNumber", p."barcodeType", p."status", p."category", p."images",
                p."netWeight", p."mrp", p."brand", p.updated_at AS "updatedAt",

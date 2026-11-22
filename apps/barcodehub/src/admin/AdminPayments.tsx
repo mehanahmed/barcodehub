@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { adminListPayments, adminReviewPayment } from 'zitejs/api';
+import { adminListPayments, adminReviewPayment } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Badge } from '@project/components/ui/badge';
 import { Textarea } from '@project/components/ui/textarea';

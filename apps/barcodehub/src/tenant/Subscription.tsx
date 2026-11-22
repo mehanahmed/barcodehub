@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Building2, Check, Clock, Loader2 } from 'lucide-react';
-import { listPackages, listMyPayments, submitPayment } from 'zitejs/api';
+import { listPackages, listMyPayments, submitPayment } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
 import { Label } from '@project/components/ui/label';

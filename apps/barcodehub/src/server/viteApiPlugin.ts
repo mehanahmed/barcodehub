@@ -4,7 +4,7 @@ import { renderHead, injectSeo, productBody, brandBody, notFoundBody } from './s
 import { normalizePhone, isEmailIdentifier } from '../lib/phone';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Plugin, ViteDevServer, PreviewServer } from 'vite';
-import { createPgTableClient, createPgSqlClient, createPgAuthClient } from './pgClient';
+import { db } from './db';
 import {
   verifySessionToken,
   createSessionToken,
@@ -19,52 +19,7 @@ import { SECURITY_HEADERS, applySecurityHeaders, securityHeadersMiddleware } fro
 
 export { SECURITY_HEADERS, applySecurityHeaders, securityHeadersMiddleware };
 
-// Initialize PostgreSQL SDK Bridge for Zite Endpoints
-const sqlClient = createPgSqlClient();
-const authClient = createPgAuthClient();
-const tableClients = new Map<string, any>();
-
-function getTable(name: string) {
-  const tableMap: Record<string, string> = {
-    packages: 'Packages',
-    Packages: 'Packages',
-    tenants: 'Tenants',
-    Tenants: 'Tenants',
-    products: 'Products',
-    Products: 'Products',
-    payments: 'Payments',
-    Payments: 'Payments',
-    productViews: 'ProductViews',
-    ProductViews: 'ProductViews',
-    admins: 'Admins',
-    Admins: 'Admins',
-    ziteUsers: 'ziteUsers',
-  };
-
-  const normalized = tableMap[name] || name;
-  if (!tableClients.has(normalized)) {
-    tableClients.set(normalized, createPgTableClient(normalized));
-  }
-  return tableClients.get(normalized);
-}
-
-// Hook into Zite's internal SDK runner so every endpoint queries PostgreSQL
-(globalThis as any).__wrapSdkCall = async (_integrationId: string, className: string, method: string, args: any) => {
-  if (className === 'Db' && method === 'executeSql') {
-    return sqlClient({ query: args.query, params: args.params });
-  }
-  if (className === 'Auth') {
-    const fn = (authClient as any)[method];
-    if (typeof fn === 'function') {
-      return fn(args);
-    }
-  }
-  const client = getTable(className);
-  if (client && typeof client[method] === 'function') {
-    return client[method](args);
-  }
-  throw new Error(`PostgreSQL handler for ${className}.${method} not found`);
-};
+const sqlClient = db.sql;
 
 export function viteApiPlugin(): Plugin {
   return {
@@ -82,7 +37,7 @@ export function viteApiPlugin(): Plugin {
               path.resolve(server.config.root, 'src/api/sitemap.ts')
             );
             const endpoint = mod.default || mod;
-            const result = await endpoint.execute({ input: {}, context: { user: null, headers: req.headers, ip: req.socket.remoteAddress }, step: { run: async (_: string, fn: () => any) => fn(), sleep: async () => {} } });
+            const result = await endpoint.execute({ input: {}, context: { user: null, headers: req.headers, ip: req.socket.remoteAddress } });
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/xml; charset=utf-8');
             res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -149,9 +104,8 @@ export function viteApiPlugin(): Plugin {
 
         const authHeader = req.headers.authorization || '';
         const cookieHeader = req.headers.cookie || '';
-        const sessionCookie = parseCookie(cookieHeader, 'barcodehub_session') || parseCookie(cookieHeader, 'better-auth.session_token');
-        // The HttpOnly cookie wins, so a stale token left in an old browser's storage can't shadow a valid session.
-        const token = (sessionCookie || body.usageToken || body.ziteAuthToken || authHeader.replace(/^Bearer\s+/i, '') || '').trim();
+        // Session comes from the HttpOnly cookie (browser) or an Authorization: Bearer header (scripts).
+        const token = (parseCookie(cookieHeader, 'barcodehub_session') || authHeader.replace(/^Bearer\s+/i, '') || '').trim();
 
         let user: any = null;
         if (token) {
@@ -328,10 +282,7 @@ export function viteApiPlugin(): Plugin {
         if (endpointName === 'auth/sign-out') {
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
-          res.setHeader('Set-Cookie', [
-            'barcodehub_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; HttpOnly',
-            'better-auth.session_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; HttpOnly',
-          ]);
+          res.setHeader('Set-Cookie', ['barcodehub_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; HttpOnly']);
           return res.end(JSON.stringify({ success: true }));
         }
 
@@ -382,21 +333,16 @@ export function viteApiPlugin(): Plugin {
             return res.end(JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Please sign in to continue.' } }));
           }
 
-          const context = {
-            user,
-            headers: req.headers,
-            ip: req.socket.remoteAddress,
-          };
-
-          const step = {
-            run: async (_name: string, fn: () => any) => fn(),
-            sleep: async () => {},
-          };
+          // Every request is checked against the endpoint's schema before it runs.
+          const parsed = endpoint.inputSchema ? endpoint.inputSchema.safeParse(body.inputs ?? body ?? {}) : { success: true, data: {} };
+          if (!parsed.success) {
+            const issues = parsed.error.issues.map((i: any) => `${i.path.join('.') || 'input'}: ${i.message}`).join('; ');
+            return sendJson(400, { error: { code: 'BAD_REQUEST', message: `Invalid request. ${issues}` } });
+          }
 
           const result = await endpoint.execute({
-            input: body.inputs ?? body ?? {},
-            context,
-            step,
+            input: parsed.data,
+            context: { user, headers: req.headers, ip: req.socket.remoteAddress },
           });
 
           res.statusCode = 200;
@@ -404,10 +350,11 @@ export function viteApiPlugin(): Plugin {
           return res.end(JSON.stringify(result));
         } catch (err: any) {
           console.error(`[API Error] ${endpointName}:`, err);
-          const code = err.code || 'INTERNAL_ERROR';
-          const message = err.userFacingMessage || err.message || 'API execution error';
-          
-          res.statusCode = code === 'UNAUTHORIZED' ? 401 : code === 'FORBIDDEN' ? 403 : 400;
+          // Only ApiError messages (which carry userFacingMessage) reach the client; anything else may hold SQL or stack details.
+          const known = typeof err?.userFacingMessage === 'string';
+          const code = known ? err.code || 'BAD_REQUEST' : 'INTERNAL_ERROR';
+          const message = known ? err.userFacingMessage : 'Something went wrong. Please try again.';
+          res.statusCode = code === 'UNAUTHORIZED' ? 401 : code === 'FORBIDDEN' ? 403 : known ? 400 : 500;
           res.setHeader('Content-Type', 'application/json');
           return res.end(JSON.stringify({ error: { code, message } }));
         }
@@ -443,7 +390,6 @@ export function viteApiPlugin(): Plugin {
           return (mod.default || mod).execute({
             input,
             context: { user: null, headers: req.headers, ip: req.socket.remoteAddress },
-            step: { run: async (_: string, fn: () => any) => fn(), sleep: async () => {} },
           });
         };
         const segment = (re: RegExp) => {

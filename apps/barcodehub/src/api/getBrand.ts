@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { toImageUrl } from '../server/helpers';
 
 export default createEndpoint({
@@ -8,9 +8,9 @@ export default createEndpoint({
   inputSchema: z.object({ slug: z.string() }),
   outputSchema: z.object({ brand: z.any().nullable() }),
   execute: async ({ input }) => {
-    const tenant = await zite.tenants.findOne({ filters: { slug: input.slug.toLowerCase() } });
+    const tenant = await db.tenants.findOne({ filters: { slug: input.slug.toLowerCase() } });
     if (!tenant || tenant.status === 'Suspended') return { brand: null };
-    const { records } = await zite.products.findAll({
+    const { records } = await db.products.findAll({
       filters: { tenant: tenant.id, status: 'Published' },
       sort: [{ field: 'title', direction: 'asc' }],
       limit: 500,

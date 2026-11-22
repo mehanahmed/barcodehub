@@ -283,26 +283,3 @@ export function createPgSqlClient() {
     };
   };
 }
-
-export function createPgAuthClient() {
-  const table = createPgTableClient<any>('ziteUsers');
-  return {
-    async findAllUsers(params: FindAllParams = {}) {
-      return table.findAll(params);
-    },
-    async updateUserProfile(userId: string, data: { firstName?: string; lastName?: string; image?: string }) {
-      return table.update({ id: userId, record: data });
-    },
-  };
-}
-
-export const pgDb = {
-  packages: createPgTableClient('Packages'),
-  tenants: createPgTableClient('Tenants'),
-  products: createPgTableClient('Products'),
-  payments: createPgTableClient('Payments'),
-  productViews: createPgTableClient('ProductViews'),
-  admins: createPgTableClient('Admins'),
-  sql: createPgSqlClient(),
-  auth: createPgAuthClient(),
-};

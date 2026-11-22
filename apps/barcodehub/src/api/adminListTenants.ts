@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireAdmin } from '../server/helpers';
 
 export default createEndpoint({
@@ -10,7 +10,7 @@ export default createEndpoint({
   outputSchema: z.object({ tenants: z.array(z.any()) }),
   execute: async ({ context }) => {
     await requireAdmin(context);
-    const { rows } = await zite.sql({
+    const { rows } = await db.sql({
       query: `
         SELECT t.id, t."companyName", t."slug", t."status", t."subscriptionEnds", t.created_at AS "createdAt",
                u."email" AS "ownerEmail",

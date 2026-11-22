@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createEndpoint } from 'zitejs/backend';
-import { zite } from 'zitejs/db';
+import { createEndpoint } from '../server/endpoint';
+import { db } from '../server/db';
 import { requireAdmin } from '../server/helpers';
 
 export default createEndpoint({
@@ -15,7 +15,7 @@ export default createEndpoint({
   outputSchema: z.object({ ok: z.boolean() }),
   execute: async ({ input, context }) => {
     await requireAdmin(context);
-    await zite.tenants.update({
+    await db.tenants.update({
       id: input.id,
       record: { package: input.packageId, subscriptionEnds: input.subscriptionEnds, status: input.status },
     });

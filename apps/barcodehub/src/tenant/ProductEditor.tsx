@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { ChevronLeft, Loader2, Upload, X, Wand2, ExternalLink } from 'lucide-react';
 import { useLocalUpload } from '@/hooks/useLocalUpload';
-import { getMyProduct, saveProduct, suggestBarcode, type SaveProductInputType } from 'zitejs/api';
+import { getMyProduct, saveProduct, suggestBarcode, type SaveProductInputType } from '@/lib/api';
 import { Button } from '@project/components/ui/button';
 import { Input } from '@project/components/ui/input';
 import { Textarea } from '@project/components/ui/textarea';
